@@ -1,285 +1,268 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>IoT Live Dashboard</title>
+  <meta charset="UTF-8" />
+  <title>🌐 IoT Live Dashboard</title>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
+    /* --- GLOBAL STYLES --- */
+    :root {
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --accent-blue: #38bdf8;
+      --accent-yellow: #fbbf24;
+      --text-light: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --danger: #ef4444;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #f8fafc;
-      text-align: center;
+      font-family: "Segoe UI", Roboto, Arial, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-light);
       margin: 0;
       padding: 0;
+      text-align: center;
     }
+
     h1 {
       margin: 20px 0;
-      color: #38bdf8;
+      color: var(--accent-blue);
+      font-size: 28px;
     }
+
     h2 {
-      margin-top: 30px;
-      color: #fbbf24;
+      color: var(--accent-yellow);
+      margin: 30px 0 10px;
+      font-size: 20px;
     }
+
+    /* --- CONNECTION STATUS --- */
     .status {
-      padding: 10px;
-      margin: 10px 20px;
+      display: inline-block;
+      padding: 10px 20px;
+      margin: 10px 0;
       border-radius: 8px;
       font-weight: bold;
+      transition: background 0.3s;
     }
-    .status.connected {
-      background: #10b981;
-      color: white;
+    .connected {
+      background: var(--success);
     }
-    .status.disconnected {
-      background: #ef4444;
-      color: white;
+    .disconnected {
+      background: var(--danger);
     }
+
+    /* --- CONTAINER & CARD --- */
     .container {
       display: flex;
-      justify-content: space-around;
+      justify-content: center;
       flex-wrap: wrap;
-      margin: 20px;
+      margin: 20px auto;
+      gap: 20px;
+      max-width: 1200px;
     }
+
     .card {
-      background: #1e293b;
-      padding: 20px;
-      margin: 10px;
+      background: var(--bg-card);
       border-radius: 12px;
-      min-width: 250px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      padding: 20px;
+      width: 260px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+      transition: transform 0.2s;
     }
+
+    .card:hover {
+      transform: translateY(-3px);
+    }
+
     .title {
       font-size: 18px;
-      margin-bottom: 10px;
-      color: #fbbf24;
       font-weight: bold;
+      color: var(--accent-yellow);
+      margin-bottom: 10px;
     }
+
     .value {
-      font-size: 24px;
-      color: #38bdf8;
+      font-size: 22px;
+      color: var(--accent-blue);
       margin: 5px 0;
     }
+
     .timestamp {
       font-size: 12px;
-      color: #94a3b8;
-      margin-top: 10px;
+      color: var(--text-muted);
     }
+
+    /* --- SENSORS --- */
     .sensor-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      margin-top: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 8px;
+      margin-top: 12px;
     }
+
     .sensor-item {
       background: #334155;
-      padding: 10px;
       border-radius: 8px;
+      padding: 10px;
     }
+
     .sensor-label {
       font-size: 12px;
-      color: #94a3b8;
+      color: var(--text-muted);
     }
+
     .sensor-value {
       font-size: 18px;
-      color: #38bdf8;
       font-weight: bold;
+      color: var(--accent-blue);
     }
+
+    /* --- LOGS --- */
     .logs {
-      margin: 20px;
+      margin: 20px auto;
       padding: 15px;
-      background: #1e293b;
+      background: var(--bg-card);
       border-radius: 8px;
+      width: 90%;
+      max-width: 900px;
       text-align: left;
-      max-height: 200px;
+      max-height: 250px;
       overflow-y: auto;
       font-family: monospace;
       font-size: 12px;
     }
+
     .log-entry {
+      border-left: 3px solid var(--accent-blue);
       margin: 5px 0;
-      padding: 5px;
-      border-left: 3px solid #38bdf8;
       padding-left: 10px;
+      word-wrap: break-word;
+    }
+
+    @media (max-width: 600px) {
+      .card {
+        width: 90%;
+      }
     }
   </style>
 </head>
+
 <body>
   <h1>🌐 IoT Live Dashboard</h1>
-  
-  <div id="connectionStatus" class="status disconnected">
-    Disconnected
-  </div>
+
+  <div id="connectionStatus" class="status disconnected">❌ Disconnected</div>
 
   <h2>📡 Raspberry Pi Data</h2>
   <div class="container" id="piContainer">
-    <div class="card">
-      <div class="title">Waiting for data...</div>
-    </div>
+    <div class="card"><div class="title">Waiting for data...</div></div>
   </div>
 
-  <h2>☁️ AWS Server Data</h2>
+  <h2>☁️ Server Data</h2>
   <div class="container" id="serverContainer">
-    <div class="card">
-      <div class="title">Waiting for data...</div>
-    </div>
+    <div class="card"><div class="title">Waiting for data...</div></div>
   </div>
 
-  <h2>📋 Connection Logs</h2>
+  <h2>📋 Logs</h2>
   <div class="logs" id="logs"></div>
 
   <script>
-    // IMPORTANT: Change these settings to match your MQTT broker
-    const BROKER_URL = 'ws://13.233.166.78'; // WebSocket port (usually 9001)
-    // If using secure WebSocket: 'wss://your-broker:8084'
-    
-    const PI_TOPIC = 'myiot/device/data';
-    const SERVER_TOPIC = 'myiot/server/data';
+    // -------- CONFIGURATION --------
+    const BROKER_URL = 'ws://13.233.166.78:9001';  // Use ws:// or wss:// depending on broker
+    const TOPIC_PI = 'myiot/device/data';
+    const TOPIC_SERVER = 'myiot/server/data';
 
-    let client;
+    const statusEl = document.getElementById('connectionStatus');
+    const logsEl = document.getElementById('logs');
     const piContainer = document.getElementById('piContainer');
     const serverContainer = document.getElementById('serverContainer');
-    const statusDiv = document.getElementById('connectionStatus');
-    const logsDiv = document.getElementById('logs');
 
-    function addLog(message, type = 'info') {
-      const logEntry = document.createElement('div');
-      logEntry.className = 'log-entry';
-      const timestamp = new Date().toLocaleTimeString();
-      logEntry.textContent = `[${timestamp}] ${message}`;
-      logsDiv.insertBefore(logEntry, logsDiv.firstChild);
-      
-      // Keep only last 20 logs
-      while (logsDiv.children.length > 20) {
-        logsDiv.removeChild(logsDiv.lastChild);
-      }
+    // -------- LOG HANDLER --------
+    function log(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      const ts = new Date().toLocaleTimeString();
+      entry.textContent = `[${ts}] ${message}`;
+      logsEl.prepend(entry);
+      while (logsEl.children.length > 30) logsEl.removeChild(logsEl.lastChild);
     }
 
-    function updateStatus(connected) {
+    // -------- STATUS UI --------
+    function setStatus(connected) {
       if (connected) {
-        statusDiv.textContent = '✅ Connected to MQTT Broker';
-        statusDiv.className = 'status connected';
+        statusEl.textContent = '✅ Connected to MQTT Broker';
+        statusEl.className = 'status connected';
       } else {
-        statusDiv.textContent = '❌ Disconnected from MQTT Broker';
-        statusDiv.className = 'status disconnected';
+        statusEl.textContent = '❌ Disconnected from MQTT Broker';
+        statusEl.className = 'status disconnected';
       }
     }
 
-    function displayPiData(data) {
-      const html = `
+    // -------- CARD RENDER --------
+    function renderCard(container, data) {
+      const sensorsHTML = data.sensors
+        ? Object.entries(data.sensors)
+            .map(
+              ([k, v]) => `
+            <div class="sensor-item">
+              <div class="sensor-label">${k}</div>
+              <div class="sensor-value">${typeof v === 'number' ? v.toFixed(2) : v}</div>
+            </div>`
+            )
+            .join('')
+        : '';
+
+      container.innerHTML = `
         <div class="card">
-          <div class="title">Device: ${data.device_id || 'Unknown'}</div>
+          <div class="title">${data.device_id || 'Unknown Device'}</div>
           <div class="value">${data.status || 'Active'}</div>
           <div class="timestamp">${new Date(data.timestamp).toLocaleString()}</div>
-          ${data.sensors ? `
-            <div class="sensor-grid">
-              ${Object.entries(data.sensors).map(([key, value]) => `
-                <div class="sensor-item">
-                  <div class="sensor-label">${key}</div>
-                  <div class="sensor-value">${typeof value === 'number' ? value.toFixed(2) : value}</div>
-                </div>
-              `).join('')}
-            </div>
-          ` : ''}
-        </div>
-      `;
-      piContainer.innerHTML = html;
-      addLog(`Received Pi data: ${data.device_id}`);
+          <div class="sensor-grid">${sensorsHTML}</div>
+        </div>`;
     }
 
-    function displayServerData(data) {
-      const html = `
-        <div class="card">
-          <div class="title">Device: ${data.device_id || 'Unknown'}</div>
-          <div class="value">${data.status || 'Active'}</div>
-          <div class="timestamp">${new Date(data.timestamp).toLocaleString()}</div>
-          ${data.sensors ? `
-            <div class="sensor-grid">
-              ${Object.entries(data.sensors).map(([key, value]) => `
-                <div class="sensor-item">
-                  <div class="sensor-label">${key}</div>
-                  <div class="sensor-value">${typeof value === 'number' ? value.toFixed(2) : value}</div>
-                </div>
-              `).join('')}
-            </div>
-          ` : ''}
-        </div>
-      `;
-      serverContainer.innerHTML = html;
-      addLog(`Received Server data: ${data.device_id}`);
-    }
-
-    // Connect to MQTT broker
-    addLog('Attempting to connect to MQTT broker...');
-    
+    // -------- MQTT CONNECTION --------
+    log('Connecting to MQTT broker...');
+    let client;
     try {
       client = mqtt.connect(BROKER_URL, {
-        clientId: 'WebDashboard_' + Math.random().toString(16).substr(2, 8),
-        clean: true,
+        clientId: 'WebDashboard_' + Math.random().toString(16).slice(2, 8),
         reconnectPeriod: 5000,
-        connectTimeout: 30000
       });
 
       client.on('connect', () => {
-        addLog('✅ Connected to MQTT broker successfully!');
-        updateStatus(true);
-        
-        // Subscribe to topics
-        client.subscribe(PI_TOPIC, (err) => {
-          if (!err) {
-            addLog(`Subscribed to ${PI_TOPIC}`);
-          } else {
-            addLog(`Failed to subscribe to ${PI_TOPIC}: ${err.message}`, 'error');
-          }
-        });
-
-        client.subscribe(SERVER_TOPIC, (err) => {
-          if (!err) {
-            addLog(`Subscribed to ${SERVER_TOPIC}`);
-          } else {
-            addLog(`Failed to subscribe to ${SERVER_TOPIC}: ${err.message}`, 'error');
-          }
+        log('✅ Connected successfully');
+        setStatus(true);
+        client.subscribe([TOPIC_PI, TOPIC_SERVER], (err) => {
+          if (err) log('❌ Subscription failed: ' + err.message);
+          else log('📡 Subscribed to topics');
         });
       });
 
-      client.on('message', (topic, message) => {
+      client.on('message', (topic, msg) => {
         try {
-          const data = JSON.parse(message.toString());
-          
-          if (topic === PI_TOPIC) {
-            displayPiData(data);
-          } else if (topic === SERVER_TOPIC) {
-            displayServerData(data);
+          const data = JSON.parse(msg.toString());
+          if (topic === TOPIC_PI) {
+            renderCard(piContainer, data);
+            log(`Received data from ${data.device_id || 'Raspberry Pi'}`);
+          } else if (topic === TOPIC_SERVER) {
+            renderCard(serverContainer, data);
+            log(`Received data from ${data.device_id || 'Server'}`);
           }
-        } catch (e) {
-          addLog(`Error parsing message: ${e.message}`, 'error');
-          console.error('Parse error:', e, 'Message:', message.toString());
+        } catch (err) {
+          log('Error parsing message: ' + err.message);
         }
       });
 
-      client.on('error', (err) => {
-        addLog(`❌ Connection error: ${err.message}`, 'error');
-        updateStatus(false);
-      });
-
-      client.on('close', () => {
-        addLog('Connection closed');
-        updateStatus(false);
-      });
-
-      client.on('offline', () => {
-        addLog('Client is offline');
-        updateStatus(false);
-      });
-
-      client.on('reconnect', () => {
-        addLog('Attempting to reconnect...');
-      });
-
+      client.on('error', (err) => log('❌ Connection error: ' + err.message));
+      client.on('close', () => { log('🔌 Connection closed'); setStatus(false); });
+      client.on('offline', () => { log('⚠️ Client offline'); setStatus(false); });
+      client.on('reconnect', () => log('🔁 Reconnecting...'));
     } catch (e) {
-      addLog(`❌ Failed to create MQTT client: ${e.message}`, 'error');
+      log('❌ Failed to initialize MQTT client: ' + e.message);
     }
   </script>
 </body>
 </html>
- 
